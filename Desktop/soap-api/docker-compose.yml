@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  soap-api:
+    build: .
+    ports:
+      - "8010:80"
+    container_name: soap_api_app

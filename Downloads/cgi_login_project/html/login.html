@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import os, uuid
+import cgi
+import html
+from http import cookies
+
+def send_headers(extra=None):
+    print("Content-Type: text/html")
+    if extra:
+        for h in extra:
+            print(h)
+    print()  # linha em branco obrigatória
+
+def render_form(message=""):
+    msg_html = "<p style='color:red'>{}</p>".format(html.escape(message)) if message else ""
+    output = (
+        "<!doctype html>\n"
+        "<html>\n"
+        "<head><meta charset='utf-8'><title>Login</title></head>\n"
+        "<body>\n"
+        "<h2>Login to Shop</h2>\n"
+        "{}\n"
+        "<form action='' method='post'>\n"
+        "    Username: <input type='text' name='username'><br>\n"
+        "    Password: <input type='password' name='password'><br>\n"
+        "    <input type='submit' value='Login'>\n"
+        "</form>\n"
+        "</body>\n"
+        "</html>".format(msg_html)
+    )
+    print(output)
+
+def render_success(username):
+    output = (
+        "<!doctype html>\n"
+        "<html>\n"
+        "<head><meta charset='utf-8'><title>Welcome</title></head>\n"
+        "<body>\n"
+        "<h2>Welcome, {}</h2>\n"
+        "<a href='/cgi-bin/shop.cgi'>Go to shop</a>\n"
+        "</body>\n"
+        "</html>".format(html.escape(username))
+    )
+    print(output)
+
+# Fluxo principal
+method = os.environ.get("REQUEST_METHOD", "GET").upper()
+
+if method == "POST":
+    form = cgi.FieldStorage()
+    username = form.getfirst("username", "")
+    password = form.getfirst("password", "")
+
+    if username == "admin" and password == "1234":
+        session_id = str(uuid.uuid4())
+
+        session_dir = os.path.join(os.path.dirname(__file__), "..", "cgi-bin", "session")
+        if not os.path.isdir(session_dir):
+            session_dir = os.path.join(os.path.dirname(__file__), "session")
+        os.makedirs(session_dir, exist_ok=True)
+
+        with open(os.path.join(session_dir, "{}.txt".format(session_id)), "w") as f:
+            f.write(username)
+
+        send_headers(["Set-Cookie: session_id={}; Path=/".format(session_id)])
+        render_success(username)
+    else:
+        send_headers()
+        render_form("Login failed")
+else:
+    send_headers()
+    render_form()
